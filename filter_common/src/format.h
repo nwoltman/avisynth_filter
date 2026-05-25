@@ -61,6 +61,7 @@ public:
             int transfer = VSTransferCharacteristics::VSC_TRANSFER_UNSPECIFIED;
 
             auto Update(const DXVA_ExtendedFormat &dxvaExtFormat) -> void;
+            auto ApplyTo(DXVA_ExtendedFormat &dxvaExtFormat) const -> void;
         };
 
         const PixelFormat *pixelFormat;

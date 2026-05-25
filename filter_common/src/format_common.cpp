@@ -70,6 +70,71 @@ auto Format::VideoFormat::ColorSpaceInfo::Update(const DXVA_ExtendedFormat &dxva
     }
 }
 
+auto Format::VideoFormat::ColorSpaceInfo::ApplyTo(DXVA_ExtendedFormat &dxvaExtFormat) const -> void {
+    if (colorRange) {
+        switch (*colorRange) {
+        case VSColorRange::VSC_RANGE_FULL:
+            dxvaExtFormat.NominalRange = DXVA_NominalRange_Normal;
+            break;
+        case VSColorRange::VSC_RANGE_LIMITED:
+            dxvaExtFormat.NominalRange = DXVA_NominalRange_Wide;
+            break;
+        }
+    }
+
+    switch (primaries) {
+    case VSColorPrimaries::VSC_PRIMARIES_BT709:
+        dxvaExtFormat.VideoPrimaries = DXVA_VideoPrimaries_BT709;
+        break;
+    case VSColorPrimaries::VSC_PRIMARIES_BT470_M:
+        dxvaExtFormat.VideoPrimaries = DXVA_VideoPrimaries_BT470_2_SysM;
+        break;
+    case VSColorPrimaries::VSC_PRIMARIES_BT470_BG:
+        dxvaExtFormat.VideoPrimaries = DXVA_VideoPrimaries_BT470_2_SysBG;
+        break;
+    case VSColorPrimaries::VSC_PRIMARIES_ST170_M:
+        dxvaExtFormat.VideoPrimaries = DXVA_VideoPrimaries_SMPTE170M;
+        break;
+    case VSColorPrimaries::VSC_PRIMARIES_ST240_M:
+        dxvaExtFormat.VideoPrimaries = DXVA_VideoPrimaries_SMPTE240M;
+        break;
+    case VSColorPrimaries::VSC_PRIMARIES_EBU3213_E:
+        dxvaExtFormat.VideoPrimaries = DXVA_VideoPrimaries_EBU3213;
+        break;
+    }
+
+    switch (matrix) {
+    case VSMatrixCoefficients::VSC_MATRIX_BT709:
+        dxvaExtFormat.VideoTransferMatrix = DXVA_VideoTransferMatrix_BT709;
+        break;
+    case VSMatrixCoefficients::VSC_MATRIX_BT470_BG:
+    case VSMatrixCoefficients::VSC_MATRIX_ST170_M:
+        dxvaExtFormat.VideoTransferMatrix = DXVA_VideoTransferMatrix_BT601;
+        break;
+    case VSMatrixCoefficients::VSC_MATRIX_ST240_M:
+        dxvaExtFormat.VideoTransferMatrix = DXVA_VideoTransferMatrix_SMPTE240M;
+        break;
+    }
+
+    switch (transfer) {
+    case VSTransferCharacteristics::VSC_TRANSFER_LINEAR:
+        dxvaExtFormat.VideoTransferFunction = DXVA_VideoTransFunc_10;
+        break;
+    case VSTransferCharacteristics::VSC_TRANSFER_BT470_M:
+        dxvaExtFormat.VideoTransferFunction = DXVA_VideoTransFunc_22;
+        break;
+    case VSTransferCharacteristics::VSC_TRANSFER_BT709:
+        dxvaExtFormat.VideoTransferFunction = DXVA_VideoTransFunc_22_709;
+        break;
+    case VSTransferCharacteristics::VSC_TRANSFER_ST240_M:
+        dxvaExtFormat.VideoTransferFunction = DXVA_VideoTransFunc_22_240M;
+        break;
+    case VSTransferCharacteristics::VSC_TRANSFER_BT470_BG:
+        dxvaExtFormat.VideoTransferFunction = DXVA_VideoTransFunc_28;
+        break;
+    }
+}
+
 auto Format::VideoFormat::GetCodecFourCC() const -> DWORD {
     return FOURCCMap(&pixelFormat->mediaSubtype).GetFOURCC();
 }

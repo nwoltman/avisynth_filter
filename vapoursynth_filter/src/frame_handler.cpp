@@ -335,6 +335,21 @@ auto FrameHandler::PrepareOutputSample(ATL::CComPtr<IMediaSample> &outSample, in
         _notifyChangedOutputMediaType = true;
     }
 
+    if (const int64_t colorRange = AVSF_VPS_API->mapGetInt(frameProps, "_ColorRange", 0, &propGetError);
+        propGetError == peSuccess &&
+        (colorRange == VSColorRange::VSC_RANGE_FULL || colorRange == VSColorRange::VSC_RANGE_LIMITED) &&
+        _filter._outputVideoFormat.colorSpaceInfo.colorRange != colorRange &&
+        SUCCEEDED(CheckVideoInfo2Type(&_filter.m_pOutput->CurrentMediaType()))) {
+        VIDEOINFOHEADER2 *vih2 = reinterpret_cast<VIDEOINFOHEADER2 *>(_filter.m_pOutput->CurrentMediaType().Format());
+        DXVA_ExtendedFormat &dxvaExtFormat = reinterpret_cast<DXVA_ExtendedFormat &>(vih2->dwControlFlags);
+        _filter._outputVideoFormat.colorSpaceInfo.colorRange = static_cast<int>(colorRange);
+        _filter._outputVideoFormat.colorSpaceInfo.ApplyTo(dxvaExtFormat);
+        vih2->dwControlFlags |= AMCONTROL_USED | AMCONTROL_COLORINFO_PRESENT;
+        _notifyChangedOutputMediaType = true;
+
+        Environment::GetInstance().Log(L"New output color range: %lld", colorRange);
+    }
+
     if (_notifyChangedOutputMediaType) {
         outSample->SetMediaType(&_filter.m_pOutput->CurrentMediaType());
         _notifyChangedOutputMediaType = false;
