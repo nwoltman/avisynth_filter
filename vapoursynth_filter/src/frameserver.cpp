@@ -14,6 +14,7 @@ namespace {
 constexpr const char *VPS_VAR_NAME_SOURCE_NODE = "VpsFilterSource";
 constexpr const char *VPS_VAR_NAME_DISCONNECT  = "VpsFilterDisconnect";
 constexpr const char *VPS_VAR_NAME_SOURCE_PATH = "VpsFilterSourcePath";
+constexpr const char *VPS_VAR_NAME_SOURCE_NEGOTIATION = "VpsFilterSourceNegotiation";
 
 auto VS_CC SourceGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) -> const VSFrame * {
     const CSynthFilter *filter = reinterpret_cast<const CSynthFilter *>(instanceData);
@@ -126,7 +127,7 @@ FrameServerBase::~FrameServerBase() {
 /**
  * Create new script clip with specified media type.
  */
-auto FrameServerBase::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect, const CSynthFilter *sourceFilter, const CSynthFilter *metadataFilter) -> bool {
+auto FrameServerBase::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect, bool isSourceNegotiation, const CSynthFilter *sourceFilter, const CSynthFilter *metadataFilter) -> bool {
     StopScript();
     AVSF_VPS_API->freeNode(_sourceClip);
 
@@ -150,10 +151,14 @@ auto FrameServerBase::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDi
     AVSF_VPS_API->freeMap(sourceInputs);
 
     _errorString.clear();
+    const std::string sourceNegotiationScript = std::format("{} = {}", VPS_VAR_NAME_SOURCE_NEGOTIATION, isSourceNegotiation ? "True" : "False");
+    if (AVSF_VPS_SCRIPT_API->evaluateBuffer(_vsScript, sourceNegotiationScript.c_str(), "VpsFilter_Variables") != 0) {
+        _errorString = AVSF_VPS_SCRIPT_API->getError(_vsScript);
+    }
 
     bool toDisconnect = false;
 
-    if (!FrameServerCommon::GetInstance()._scriptPath.empty()) {
+    if (_errorString.empty() && !FrameServerCommon::GetInstance()._scriptPath.empty()) {
         const std::string utf8Filename = ConvertWideToUtf8(FrameServerCommon::GetInstance()._scriptPath.native());
 
         if (AVSF_VPS_SCRIPT_API->evaluateFile(_vsScript, utf8Filename.c_str()) == 0) {
@@ -202,7 +207,7 @@ core.text.Text({}, r'''{}''').set_output()",
 auto MainFrameServer::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect) -> bool {
     Environment::GetInstance().Log(L"ReloadScript from main frameserver");
 
-    if (__super::ReloadScript(mediaType, ignoreDisconnect, _filter)) {
+    if (__super::ReloadScript(mediaType, ignoreDisconnect, false, _filter)) {
         const VSVideoInfo &sourceVideoInfo = FrameServerCommon::GetInstance()._sourceVideoInfo;
         _sourceAvgFrameRate = static_cast<int>(llMulDiv(sourceVideoInfo.fpsNum, FRAME_RATE_SCALE_FACTOR, sourceVideoInfo.fpsDen, 0));
         _sourceAvgFrameDuration = llMulDiv(sourceVideoInfo.fpsDen, UNITS, sourceVideoInfo.fpsNum, 0);
@@ -215,7 +220,7 @@ auto MainFrameServer::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDi
 auto AuxFrameServer::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect) -> bool {
     Environment::GetInstance().Log(L"ReloadScript from auxiliary frameserver");
 
-    if (__super::ReloadScript(mediaType, ignoreDisconnect, nullptr, _filter)) {
+    if (__super::ReloadScript(mediaType, ignoreDisconnect, true, nullptr, _filter)) {
         _scriptVideoInfo = *AVSF_VPS_API->getVideoInfo(_scriptClip);
         StopScript();
         return true;
