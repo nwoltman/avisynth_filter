@@ -335,19 +335,92 @@ auto FrameHandler::PrepareOutputSample(ATL::CComPtr<IMediaSample> &outSample, in
         _notifyChangedOutputMediaType = true;
     }
 
-    if (const int64_t colorRange = AVSF_VPS_API->mapGetInt(frameProps, "_ColorRange", 0, &propGetError);
-        propGetError == peSuccess &&
-        (colorRange == VSColorRange::VSC_RANGE_FULL || colorRange == VSColorRange::VSC_RANGE_LIMITED) &&
-        _filter._outputVideoFormat.colorSpaceInfo.colorRange != colorRange &&
-        SUCCEEDED(CheckVideoInfo2Type(&_filter.m_pOutput->CurrentMediaType()))) {
-        VIDEOINFOHEADER2 *vih2 = reinterpret_cast<VIDEOINFOHEADER2 *>(_filter.m_pOutput->CurrentMediaType().Format());
-        DXVA_ExtendedFormat &dxvaExtFormat = reinterpret_cast<DXVA_ExtendedFormat &>(vih2->dwControlFlags);
-        _filter._outputVideoFormat.colorSpaceInfo.colorRange = static_cast<int>(colorRange);
-        _filter._outputVideoFormat.colorSpaceInfo.ApplyTo(dxvaExtFormat);
-        vih2->dwControlFlags |= AMCONTROL_USED | AMCONTROL_COLORINFO_PRESENT;
-        _notifyChangedOutputMediaType = true;
+    if (SUCCEEDED(CheckVideoInfo2Type(&_filter.m_pOutput->CurrentMediaType()))) {
+        const auto isSupportedMatrix = [](int64_t matrix) -> bool {
+            switch (matrix) {
+            case VSMatrixCoefficients::VSC_MATRIX_BT709:
+            case VSMatrixCoefficients::VSC_MATRIX_BT470_BG:
+            case VSMatrixCoefficients::VSC_MATRIX_ST170_M:
+            case VSMatrixCoefficients::VSC_MATRIX_ST240_M:
+                return true;
+            }
 
-        Environment::GetInstance().Log(L"New output color range: %lld", colorRange);
+            return false;
+        };
+        const auto isSupportedPrimaries = [](int64_t primaries) -> bool {
+            switch (primaries) {
+            case VSColorPrimaries::VSC_PRIMARIES_BT709:
+            case VSColorPrimaries::VSC_PRIMARIES_BT470_M:
+            case VSColorPrimaries::VSC_PRIMARIES_BT470_BG:
+            case VSColorPrimaries::VSC_PRIMARIES_ST170_M:
+            case VSColorPrimaries::VSC_PRIMARIES_ST240_M:
+            case VSColorPrimaries::VSC_PRIMARIES_EBU3213_E:
+                return true;
+            }
+
+            return false;
+        };
+        const auto isSupportedTransfer = [](int64_t transfer) -> bool {
+            switch (transfer) {
+            case VSTransferCharacteristics::VSC_TRANSFER_LINEAR:
+            case VSTransferCharacteristics::VSC_TRANSFER_BT470_M:
+            case VSTransferCharacteristics::VSC_TRANSFER_BT709:
+            case VSTransferCharacteristics::VSC_TRANSFER_ST240_M:
+            case VSTransferCharacteristics::VSC_TRANSFER_BT470_BG:
+                return true;
+            }
+
+            return false;
+        };
+        bool updateColorSpaceInfo = false;
+
+        if (const int64_t colorRange = AVSF_VPS_API->mapGetInt(frameProps, "_ColorRange", 0, &propGetError);
+            propGetError == peSuccess &&
+            (colorRange == VSColorRange::VSC_RANGE_FULL || colorRange == VSColorRange::VSC_RANGE_LIMITED) &&
+            _filter._outputVideoFormat.colorSpaceInfo.colorRange != colorRange) {
+            _filter._outputVideoFormat.colorSpaceInfo.colorRange = static_cast<int>(colorRange);
+            updateColorSpaceInfo = true;
+
+            Environment::GetInstance().Log(L"New output color range: %lld", colorRange);
+        }
+
+        if (const int64_t matrix = AVSF_VPS_API->mapGetInt(frameProps, "_Matrix", 0, &propGetError);
+            propGetError == peSuccess &&
+            isSupportedMatrix(matrix) &&
+            _filter._outputVideoFormat.colorSpaceInfo.matrix != matrix) {
+            _filter._outputVideoFormat.colorSpaceInfo.matrix = static_cast<int>(matrix);
+            updateColorSpaceInfo = true;
+
+            Environment::GetInstance().Log(L"New output matrix: %lld", matrix);
+        }
+
+        if (const int64_t primaries = AVSF_VPS_API->mapGetInt(frameProps, "_Primaries", 0, &propGetError);
+            propGetError == peSuccess &&
+            isSupportedPrimaries(primaries) &&
+            _filter._outputVideoFormat.colorSpaceInfo.primaries != primaries) {
+            _filter._outputVideoFormat.colorSpaceInfo.primaries = static_cast<int>(primaries);
+            updateColorSpaceInfo = true;
+
+            Environment::GetInstance().Log(L"New output primaries: %lld", primaries);
+        }
+
+        if (const int64_t transfer = AVSF_VPS_API->mapGetInt(frameProps, "_Transfer", 0, &propGetError);
+            propGetError == peSuccess &&
+            isSupportedTransfer(transfer) &&
+            _filter._outputVideoFormat.colorSpaceInfo.transfer != transfer) {
+            _filter._outputVideoFormat.colorSpaceInfo.transfer = static_cast<int>(transfer);
+            updateColorSpaceInfo = true;
+
+            Environment::GetInstance().Log(L"New output transfer: %lld", transfer);
+        }
+
+        if (updateColorSpaceInfo) {
+            VIDEOINFOHEADER2 *vih2 = reinterpret_cast<VIDEOINFOHEADER2 *>(_filter.m_pOutput->CurrentMediaType().Format());
+            DXVA_ExtendedFormat &dxvaExtFormat = reinterpret_cast<DXVA_ExtendedFormat &>(vih2->dwControlFlags);
+            _filter._outputVideoFormat.colorSpaceInfo.ApplyTo(dxvaExtFormat);
+            vih2->dwControlFlags |= AMCONTROL_USED | AMCONTROL_COLORINFO_PRESENT;
+            _notifyChangedOutputMediaType = true;
+        }
     }
 
     if (_notifyChangedOutputMediaType) {
