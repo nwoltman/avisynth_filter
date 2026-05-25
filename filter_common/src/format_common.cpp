@@ -269,4 +269,30 @@ auto Format::InterleaveY410(std::array<const BYTE *, 3> srcs, const std::array<i
     Environment::GetInstance().Log(L"InterleaveY410() end");
 }
 
+auto Format::InterleaveRGB48(std::array<const BYTE *, 3> srcs, const std::array<int, 3> &srcStrides, BYTE *dst, int dstStride, int rowSize, int height) -> void {
+    Environment::GetInstance().Log(L"InterleaveRGB48() start");
+
+    const int width = rowSize / 6;
+
+    for (int y = 0; y < height; ++y) {
+        const uint16_t *srcR = reinterpret_cast<const uint16_t *>(srcs[0]);
+        const uint16_t *srcG = reinterpret_cast<const uint16_t *>(srcs[1]);
+        const uint16_t *srcB = reinterpret_cast<const uint16_t *>(srcs[2]);
+        uint16_t *dstLine = reinterpret_cast<uint16_t *>(dst);
+
+        for (int x = 0; x < width; ++x) {
+            *dstLine++ = *srcR++;
+            *dstLine++ = *srcG++;
+            *dstLine++ = *srcB++;
+        }
+
+        for (size_t p = 0; p < srcs.size(); ++p) {
+            srcs[p] += srcStrides[p];
+        }
+        dst += dstStride;
+    }
+
+    Environment::GetInstance().Log(L"InterleaveRGB48() end");
+}
+
 }

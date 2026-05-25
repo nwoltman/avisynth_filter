@@ -392,6 +392,7 @@ private:
 
     static auto DeinterleaveY410(const BYTE *src, int srcStride, std::array<BYTE *, 3> dsts, const std::array<int, 3> &dstStrides, int rowSize, int height) -> void;
     static auto InterleaveY410(std::array<const BYTE *, 3> srcs, const std::array<int, 3> &srcStrides, BYTE *dst, int dstStride, int rowSize, int height) -> void;
+    static auto InterleaveRGB48(std::array<const BYTE *, 3> srcs, const std::array<int, 3> &srcStrides, BYTE *dst, int dstStride, int rowSize, int height) -> void;
 
     static inline decltype(Deinterleave<0, 1, 2, 2, 1>) *_deinterleaveUVC1Func;
     static inline decltype(Deinterleave<0, 2, 2, 2, 1>) *_deinterleaveUVC2Func;

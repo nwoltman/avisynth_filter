@@ -13,6 +13,7 @@ const GUID MEDIASUBTYPE_I420                                  = FOURCCMap('024I'
 const GUID MEDIASUBTYPE_YV24                                  = FOURCCMap('42VY');
 const GUID MEDIASUBTYPE_Y410                                  = FOURCCMap('014Y');
 const GUID MEDIASUBTYPE_Y416                                  = FOURCCMap('614Y');
+const GUID MEDIASUBTYPE_RGB48                                 = FOURCCMap('0BGR');
 
 #define SETTINGS_NAME_SUFFIX                                    " Settings"
 #define STATUS_NAME_SUFFIX                                      " Status"

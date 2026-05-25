@@ -41,7 +41,9 @@ auto CSynthFilterPropSettings::OnActivate() -> HRESULT {
     CheckDlgButton(m_Dlg, IDC_ENABLE_REMOTE_CONTROL, Environment::GetInstance().IsRemoteControlEnabled());
 
     std::ranges::for_each(Format::PIXEL_FORMATS, [this](const Format::PixelFormat &pixelFormat) {
-        CheckDlgButton(m_Dlg, pixelFormat.resourceId, Environment::GetInstance().IsInputFormatEnabled(pixelFormat.name));
+        if (pixelFormat.resourceId != 0) {
+            CheckDlgButton(m_Dlg, pixelFormat.resourceId, Environment::GetInstance().IsInputFormatEnabled(pixelFormat.name));
+        }
     });
 
 #ifdef AVSF_VAPOURSYNTH
@@ -67,7 +69,9 @@ auto CSynthFilterPropSettings::OnApplyChanges() -> HRESULT {
     Environment::GetInstance().SetRemoteControlEnabled(IsDlgButtonChecked(m_Dlg, IDC_ENABLE_REMOTE_CONTROL) == BST_CHECKED);
 
     std::ranges::for_each(Format::PIXEL_FORMATS, [this](const Format::PixelFormat &pixelFormat) {
-        Environment::GetInstance().SetInputFormatEnabled(pixelFormat.name, IsDlgButtonChecked(m_Dlg, pixelFormat.resourceId) == BST_CHECKED);
+        if (pixelFormat.resourceId != 0) {
+            Environment::GetInstance().SetInputFormatEnabled(pixelFormat.name, IsDlgButtonChecked(m_Dlg, pixelFormat.resourceId) == BST_CHECKED);
+        }
     });
 
     Environment::GetInstance().SaveSettings();

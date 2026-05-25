@@ -103,6 +103,10 @@ auto Environment::LoadSettingsFromIni() -> void {
     _scriptPath = _ini.GetValue(L"", SETTING_NAME_SCRIPT_FILE, L"");
 
     std::ranges::for_each(Format::PIXEL_FORMATS, [this](const Format::PixelFormat &format) {
+        if (format.resourceId == 0) {
+            return;
+        }
+
         const std::wstring settingName = std::format(L"{}{}", SETTING_NAME_INPUT_FORMAT_PREFIX, format.name);
         if (_ini.GetBoolValue(L"", settingName.c_str(), true)) {
             _enabledInputFormats.emplace(format.name);
@@ -124,6 +128,10 @@ auto Environment::LoadSettingsFromRegistry() -> void {
     _scriptPath = _registry.ReadString(SETTING_NAME_SCRIPT_FILE);
 
     std::ranges::for_each(Format::PIXEL_FORMATS, [this](const Format::PixelFormat &format) {
+        if (format.resourceId == 0) {
+            return;
+        }
+
         const std::wstring settingName = std::format(L"{}{}", SETTING_NAME_INPUT_FORMAT_PREFIX, format.name);
         if (_registry.ReadNumber(settingName.c_str(), 1) != 0) {
             _enabledInputFormats.emplace(format.name);
@@ -159,11 +167,15 @@ auto Environment::SaveSettingsToRegistry() const -> void {
 
     std::ranges::for_each(
         Format::PIXEL_FORMATS,
-        [this](std::wstring_view name) {
+        [this](const Format::PixelFormat &format) {
+            if (format.resourceId == 0) {
+                return;
+            }
+
+            std::wstring_view name = format.name;
             const std::wstring settingName = std::format(L"{}{}", SETTING_NAME_INPUT_FORMAT_PREFIX, name);
             static_cast<void>(_registry.WriteNumber(settingName.c_str(), IsInputFormatEnabled(name)));
-        },
-        &Format::PixelFormat::name);
+        });
 }
 
 }

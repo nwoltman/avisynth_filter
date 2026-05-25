@@ -456,6 +456,11 @@ auto CSynthFilter::MediaTypeToPixelFormat(const AM_MEDIA_TYPE *mediaType) -> con
 
 auto CSynthFilter::GetInputPixelFormat(const AM_MEDIA_TYPE *mediaType) -> const Format::PixelFormat * {
     if (const Format::PixelFormat *optInputPixelFormat = MediaTypeToPixelFormat(mediaType)) {
+        if (optInputPixelFormat->resourceId == 0) {
+            Environment::GetInstance().Log(L"Reject output-only input format: %ls", optInputPixelFormat->name);
+            return nullptr;
+        }
+
         if (Environment::GetInstance().IsInputFormatEnabled(optInputPixelFormat->name)) {
             return optInputPixelFormat;
         }

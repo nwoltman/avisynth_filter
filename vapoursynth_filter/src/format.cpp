@@ -34,6 +34,7 @@ const std::vector<Format::PixelFormat> Format::PIXEL_FORMATS {
     { .name = L"Y416",  .mediaSubtype = MEDIASUBTYPE_Y416,  .frameServerFormatId = pfYUV444P16, .bitCount = 64, .componentsPerPixel = 4, .subsampleWidthRatio = 1,  .subsampleHeightRatio = 1,  .srcPlanesLayout = PlanesLayout::ALL_PLANES_INTERLEAVED,        .resourceId = IDC_INPUT_FORMAT_Y416 },
 
     { .name = L"RGB32", .mediaSubtype = MEDIASUBTYPE_RGB32, .frameServerFormatId = pfRGB24,     .bitCount = 32, .componentsPerPixel = 4, .subsampleWidthRatio = -1, .subsampleHeightRatio = -1, .srcPlanesLayout = PlanesLayout::ALL_PLANES_INTERLEAVED,        .resourceId = IDC_INPUT_FORMAT_RGB32 },
+    { .name = L"RGB48", .mediaSubtype = MEDIASUBTYPE_RGB48, .frameServerFormatId = pfRGB48,     .bitCount = 48, .componentsPerPixel = 3, .subsampleWidthRatio = -1, .subsampleHeightRatio = -1, .srcPlanesLayout = PlanesLayout::ALL_PLANES_INTERLEAVED,        .resourceId = 0 },
 };
 
 auto Format::GetVideoFormat(const AM_MEDIA_TYPE &mediaType, const FrameServerBase *frameServerInstance) -> VideoFormat {
@@ -227,6 +228,8 @@ auto Format::CopyToOutput(const VideoFormat &videoFormat, const std::array<const
             } else {
                 _interleaveY416Func(yuvaSlices, yuvaStrides, dstMainPlane, dstMainPlaneStride, dstMainPlaneRowSize, height);
             }
+        } else if (videoFormat.videoInfo.format.bytesPerSample == 2) {
+            InterleaveRGB48(srcSlices, srcStrides, dstMainPlane, dstMainPlaneStride, dstMainPlaneRowSize, height);
         } else {
             _interleaveRGBC1Func(srcSlices, srcStrides, dstMainPlane, dstMainPlaneStride, dstMainPlaneRowSize, height);
         }
