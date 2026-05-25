@@ -65,7 +65,7 @@ protected:
 
     DISABLE_COPYING(FrameServerBase)
 
-    auto ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect, const CSynthFilter *filter) -> bool;
+    auto ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect, const CSynthFilter *sourceFilter, const CSynthFilter *metadataFilter = nullptr) -> bool;
     auto StopScript() -> void;
 
     VSScript *_vsScript = nullptr;
@@ -106,9 +106,11 @@ public:
     auto ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect) -> bool;
     auto GenerateMediaType(const Format::PixelFormat &pixelFormat, const AM_MEDIA_TYPE *templateMediaType) const -> CMediaType;
     auto GetScriptPixelType() const -> uint32_t;
+    constexpr auto LinkSynthFilter(const CSynthFilter *filter) -> void { _filter = filter; }
 
 private:
     VSVideoInfo _scriptVideoInfo;
+    const CSynthFilter *_filter = nullptr;
 };
 
 }

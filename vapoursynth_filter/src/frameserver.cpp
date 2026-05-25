@@ -126,22 +126,23 @@ FrameServerBase::~FrameServerBase() {
 /**
  * Create new script clip with specified media type.
  */
-auto FrameServerBase::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect, const CSynthFilter *filter) -> bool {
+auto FrameServerBase::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect, const CSynthFilter *sourceFilter, const CSynthFilter *metadataFilter) -> bool {
     StopScript();
     AVSF_VPS_API->freeNode(_sourceClip);
 
     const VSVideoInfo &sourceVideoInfo = Format::GetVideoFormat(mediaType, this).videoInfo;
     FrameServerCommon::GetInstance()._sourceVideoInfo = sourceVideoInfo;
-    _sourceClip = AVSF_VPS_API->createVideoFilter2("VpsFilter_Source", &sourceVideoInfo, SourceGetFrame, nullptr, fmParallel, nullptr, 0, const_cast<CSynthFilter *>(filter), GetVsCore());
+    _sourceClip = AVSF_VPS_API->createVideoFilter2("VpsFilter_Source", &sourceVideoInfo, SourceGetFrame, nullptr, fmParallel, nullptr, 0, const_cast<CSynthFilter *>(sourceFilter), GetVsCore());
     AVSF_VPS_API->setCacheMode(_sourceClip, cmForceDisable);
 
     VSMap *sourceInputs = AVSF_VPS_API->createMap();
     AVSF_VPS_API->mapSetNode(sourceInputs, VPS_VAR_NAME_SOURCE_NODE, _sourceClip, 0);
 
-    if (filter == nullptr) {
+    const CSynthFilter *variableFilter = metadataFilter != nullptr ? metadataFilter : sourceFilter;
+    if (variableFilter == nullptr) {
         AVSF_VPS_API->mapSetData(sourceInputs, VPS_VAR_NAME_SOURCE_PATH, nullptr, 0, dtUtf8, 0);
     } else {
-        const std::string sourcePathStr = ConvertWideToUtf8(filter->GetVideoSourcePath().native());
+        const std::string sourcePathStr = ConvertWideToUtf8(variableFilter->GetVideoSourcePath().native());
         AVSF_VPS_API->mapSetData(sourceInputs, VPS_VAR_NAME_SOURCE_PATH, sourcePathStr.data(), static_cast<int>(sourcePathStr.size()), dtUtf8, 0);
     }
 
@@ -214,7 +215,7 @@ auto MainFrameServer::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDi
 auto AuxFrameServer::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect) -> bool {
     Environment::GetInstance().Log(L"ReloadScript from auxiliary frameserver");
 
-    if (__super::ReloadScript(mediaType, ignoreDisconnect, nullptr)) {
+    if (__super::ReloadScript(mediaType, ignoreDisconnect, nullptr, _filter)) {
         _scriptVideoInfo = *AVSF_VPS_API->getVideoInfo(_scriptClip);
         StopScript();
         return true;

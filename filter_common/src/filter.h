@@ -89,6 +89,7 @@ private:
     // not thread-safe, but filter instances should be only created by the Graph thread
     static inline int _numFilterInstances = 0;
 
+    auto UpdateVideoSourcePath() -> void;
     auto TraverseFiltersInGraph() -> void;
 
     std::unique_ptr<RemoteControl> _remoteControl = std::make_unique<RemoteControl>(*this);

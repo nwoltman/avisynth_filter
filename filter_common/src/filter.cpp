@@ -18,6 +18,9 @@ CSynthFilter::CSynthFilter(LPUNKNOWN pUnk, HRESULT *phr)
         FrameServerCommon::Create();
         MainFrameServer::Create().LinkSynthFilter(this);
         AuxFrameServer::Create();
+#ifdef AVSF_VAPOURSYNTH
+        AuxFrameServer::GetInstance().LinkSynthFilter(this);
+#endif
         Format::Initialize();
     }
     _numFilterInstances += 1;
@@ -76,6 +79,8 @@ auto CSynthFilter::CheckConnect(PIN_DIRECTION direction, IPin *pPin) -> HRESULT 
     }
 
     if (direction == PINDIR_INPUT) {
+        UpdateVideoSourcePath();
+
         ATL::CComPtr<IEnumMediaTypes> enumTypes;
         CheckHr(pPin->EnumMediaTypes(&enumTypes));
 
@@ -486,8 +491,39 @@ auto CSynthFilter::FindFirstVideoOutputPin(IBaseFilter *pFilter) -> std::optiona
     return std::nullopt;
 }
 
-auto CSynthFilter::TraverseFiltersInGraph() -> void {
+auto CSynthFilter::UpdateVideoSourcePath() -> void {
     _videoSourcePath.clear();
+
+    ATL::CComPtr<IEnumFilters> enumFilters;
+    if (m_pGraph == nullptr || FAILED(m_pGraph->EnumFilters(&enumFilters))) {
+        return;
+    }
+
+    while (true) {
+        ATL::CComPtr<IBaseFilter> currFilter;
+        if (const HRESULT hr = enumFilters->Next(1, &currFilter, nullptr); hr == S_OK) {
+            ATL::CComQIPtr<IFileSourceFilter> source(currFilter);
+            if (source == nullptr) {
+                continue;
+            }
+
+            LPOLESTR filename = nullptr;
+            if (SUCCEEDED(source->GetCurFile(&filename, nullptr)) && filename != nullptr) {
+                _videoSourcePath = filename;
+                CoTaskMemFree(filename);
+                Environment::GetInstance().Log(L"Video source path: %ls", _videoSourcePath.c_str());
+                return;
+            }
+        } else if (hr == VFW_E_ENUM_OUT_OF_SYNC) {
+            enumFilters->Reset();
+        } else {
+            break;
+        }
+    }
+}
+
+auto CSynthFilter::TraverseFiltersInGraph() -> void {
+    UpdateVideoSourcePath();
     _videoFilterNames.clear();
 
     ATL::CComPtr<IEnumFilters> enumFilters;
@@ -499,12 +535,6 @@ auto CSynthFilter::TraverseFiltersInGraph() -> void {
     while (true) {
         if (const HRESULT hr = enumFilters->Next(1, &currFilter, nullptr); hr == S_OK) {
             ATL::CComQIPtr<IFileSourceFilter> source(currFilter);
-            if (source != nullptr) {
-                if (LPOLESTR filename; SUCCEEDED(source->GetCurFile(&filename, nullptr))) {
-                    _videoSourcePath = filename;
-                }
-            }
-
             currFilter->Release();
 
             if (source != nullptr) {
