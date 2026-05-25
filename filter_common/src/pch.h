@@ -45,6 +45,8 @@
 #include <dvdmedia.h>
 #include <streams.h>
 
+#define VS_USE_API_41
+
 #ifdef AVSF_AVISYNTH
     #include <avisynth.h>
 #else

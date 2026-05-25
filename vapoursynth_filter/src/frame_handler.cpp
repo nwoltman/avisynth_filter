@@ -162,7 +162,7 @@ auto FrameHandler::AddInputSample(IMediaSample *inputSample) -> HRESULT {
     // delay activating the main frameserver until we have enough pre-buffered frames in store
     if (_nextSourceFrameNb < Environment::GetInstance().GetInitialSrcBuffer()) {
         return S_OK;
-    } else if (_nextSourceFrameNb == Environment::GetInstance().GetInitialSrcBuffer()) {
+    } else if (_nextSourceFrameNb == Environment::GetInstance().GetInitialSrcBuffer() && MainFrameServer::GetInstance().GetScriptClip() == nullptr) {
         MainFrameServer::GetInstance().ReloadScript(_filter.m_pInput->CurrentMediaType(), true);
     }
 

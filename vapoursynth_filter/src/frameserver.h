@@ -83,6 +83,7 @@ public:
     CTOR_WITHOUT_COPYING(MainFrameServer)
 
     auto ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect) -> bool;
+    auto ClearCaches() -> void;
     using FrameServerBase::StopScript;
     constexpr auto LinkSynthFilter(const CSynthFilter *filter) -> void { _filter = filter; }
     constexpr auto GetScriptClip() const -> VSNode * { return _scriptClip; }

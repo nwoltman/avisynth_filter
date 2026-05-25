@@ -217,6 +217,13 @@ auto MainFrameServer::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDi
     return false;
 }
 
+auto MainFrameServer::ClearCaches() -> void {
+    if (_scriptClip != nullptr) {
+        AVSF_VPS_API->clearCoreCaches(GetVsCore());
+        Environment::GetInstance().Log(L"Clear VapourSynth core caches");
+    }
+}
+
 auto AuxFrameServer::ReloadScript(const AM_MEDIA_TYPE &mediaType, bool ignoreDisconnect) -> bool {
     Environment::GetInstance().Log(L"ReloadScript from auxiliary frameserver");
 

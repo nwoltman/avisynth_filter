@@ -383,8 +383,10 @@ auto CSynthFilter::BeginFlush() -> HRESULT {
 auto CSynthFilter::EndFlush() -> HRESULT {
     if (IsActive()) {
         frameHandler->WaitForWorkerLatch();
-        MainFrameServer::GetInstance().StopScript();
         frameHandler->EndFlush();
+#ifdef AVSF_VAPOURSYNTH
+        MainFrameServer::GetInstance().ClearCaches();
+#endif
     }
 
     return __super::EndFlush();
